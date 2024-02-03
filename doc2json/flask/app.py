@@ -3,27 +3,37 @@ Flask app for S2ORC pdf2json utility
 """
 import hashlib
 import requests
-from flask import Flask, request, jsonify, flash, url_for, redirect, render_template, send_file
-from doc2json.grobid2json.process_pdf import process_pdf_stream
-from doc2json.tex2json.process_tex import process_tex_stream
-from doc2json.jats2json.process_jats import process_jats_stream
+from flask import (
+    Flask,
+    request,
+    jsonify,
+    flash,
+    url_for,
+    redirect,
+    render_template,
+    send_file,
+)
+from s2orc_doc2json.doc2json.grobid2json.process_pdf import process_pdf_stream
+from s2orc_doc2json.doc2json.tex2json.process_tex import process_tex_stream
+from s2orc_doc2json.doc2json.jats2json.process_jats import process_jats_stream
 
 app = Flask(__name__)
 
-ALLOWED_EXTENSIONS = {'pdf', 'gz', 'nxml'}
+ALLOWED_EXTENSIONS = {"pdf", "gz", "nxml"}
 
 
-@app.route('/')
+@app.route("/")
 def home():
     return render_template("home.html")
 
-@app.route('/', methods=['POST'])
+
+@app.route("/", methods=["POST"])
 def upload_file():
-    uploaded_file = request.files['file']
-    if uploaded_file.filename != '':
+    uploaded_file = request.files["file"]
+    if uploaded_file.filename != "":
         filename = uploaded_file.filename
         # read pdf file
-        if filename.endswith('pdf'):
+        if filename.endswith("pdf"):
             pdf_stream = uploaded_file.stream
             pdf_content = pdf_stream.read()
             # compute hash
@@ -32,14 +42,14 @@ def upload_file():
             results = process_pdf_stream(filename, pdf_sha, pdf_content)
             return jsonify(results)
         # read latex file
-        elif filename.endswith('gz'):
+        elif filename.endswith("gz"):
             zip_stream = uploaded_file.stream
             zip_content = zip_stream.read()
             # get results
             results = process_tex_stream(filename, zip_content)
             return jsonify(results)
         # read nxml file (jats)
-        elif filename.endswith('nxml'):
+        elif filename.endswith("nxml"):
             xml_stream = uploaded_file.stream
             xml_content = xml_stream.read()
             # get results
@@ -47,15 +57,14 @@ def upload_file():
             return jsonify(results)
         # unknown
         else:
-            return {
-                "Error": "Unknown file type!"
-            }
+            return {"Error": "Unknown file type!"}
 
-    return redirect(url_for('index'))
+    return redirect(url_for("index"))
 
-@app.route('/upload_url')
+
+@app.route("/upload_url")
 def upload_url():
-    url = request.args.get('url')
+    url = request.args.get("url")
     filename = "unknown"
     pdf_content = requests.get(url).content
     # compute hash
@@ -64,5 +73,6 @@ def upload_url():
     results = process_pdf_stream(filename, pdf_sha, pdf_content)
     return jsonify(results)
 
-if __name__ == '__main__':
-    app.run(port=8080, host='0.0.0.0')
+
+if __name__ == "__main__":
+    app.run(port=8080, host="0.0.0.0")
